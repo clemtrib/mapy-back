@@ -2,6 +2,8 @@ const graphql = require("graphql");
 
 const db = require("../models/index");
 
+var slugify = require("slugify");
+
 const Place = db.places;
 const User = db.users;
 const Category = db.categories;
@@ -13,6 +15,7 @@ const {
   GraphQLBoolean,
   GraphQLID,
   GraphQLInt,
+  GraphQLNumber,
   GraphQLSchema,
   GraphQLList,
   GraphQLNonNull,
@@ -33,15 +36,28 @@ const PlaceType = new GraphQLObjectType({
     name: { type: GraphQLString },
     desc: { type: GraphQLString },
     //categories: {}, => GraphQLList
-    lat: { type: GraphQLFloat },
-    lon: { type: GraphQLFloat },
+    lat: {
+      type: GraphQLString,
+      resolve(parent, args) {
+        // TODO: return Decimal
+        return parent.lat.toString();
+      },
+    },
+    lon: {
+      type: GraphQLString,
+      resolve(parent, args) {
+        // TODO: return Decimal
+        return parent.lon.toString();
+      },
+    },
     //assets: {},
     //visits: {},
     planified: { type: GraphQLBoolean },
     user: {
       type: UserType,
       resolve(parent, args) {
-        return User.findById(parent.id);
+        // TODO: use User.findById(parent.id)
+        return User.findOne({ id: parent.id });
       },
     },
   }),
@@ -72,6 +88,8 @@ const CategoryType = new GraphQLObjectType({
     id: { type: GraphQLID },
     name: { type: GraphQLString },
     desc: { type: GraphQLString },
+    slug: { type: GraphQLString },
+    color: { type: GraphQLString },
   }),
 });
 
@@ -120,7 +138,7 @@ const RootQuery = new GraphQLObjectType({
       },
     },
     categories: {
-      type: new GraphQLList(UserType),
+      type: new GraphQLList(CategoryType),
       resolve(parent, args) {
         return Category.find({});
       },
@@ -138,8 +156,8 @@ const Mutation = new GraphQLObjectType({
         name: { type: new GraphQLNonNull(GraphQLString) },
         desc: { type: new GraphQLNonNull(GraphQLString) },
         //categories: {}, => GraphQLList
-        lat: { type: new GraphQLNonNull(GraphQLFloat) },
-        lon: { type: new GraphQLNonNull(GraphQLFloat) },
+        lat: { type: new GraphQLNonNull(GraphQLString) },
+        lon: { type: new GraphQLNonNull(GraphQLString) },
         //assets: {},
         //visits: {},
         planified: { type: new GraphQLNonNull(GraphQLBoolean) },
@@ -174,9 +192,6 @@ const Mutation = new GraphQLObjectType({
           isAdmin: true, // args.isAdmin,
         });
         let newUser = user.save();
-        //if (!newUser) {
-        //  throw new Error("shit");
-        //}
         return newUser;
       },
     },
@@ -186,11 +201,14 @@ const Mutation = new GraphQLObjectType({
         //GraphQLNonNull make these fields required
         name: { type: GraphQLString },
         desc: { type: GraphQLString },
+        color: { type: GraphQLString },
       },
       resolve(parent, args) {
         let category = new Category({
           name: args.name,
           desc: args.desc,
+          slug: slugify(args.name),
+          color: args.color,
         });
         return category.save();
       },

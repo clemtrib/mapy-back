@@ -9,15 +9,10 @@ module.exports = (mongoose) => {
       assets: Array,
       visits: Array,
       planified: Boolean,
-      user: Number,
+      user: String,
     },
     { timestamps: true }
   );
-  schema.method("toJSON", function () {
-    const { __v, _id, ...object } = this.toObject();
-    object.id = _id;
-    return object;
-  });
   const Place = mongoose.model("place", schema);
   return Place;
 };
